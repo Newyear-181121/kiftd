@@ -1,5 +1,6 @@
 package kohgylw.kiftd.server.util;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.*;
 
@@ -32,6 +33,7 @@ import org.zeroturnaround.zip.*;
  * @author 青阳龙野(kohgylw)
  * @version 1.1
  */
+@Slf4j
 @Component
 public class FileBlockUtil {
 	@Resource
@@ -100,7 +102,8 @@ public class FileBlockUtil {
 					File file = null;
 					try {
 						// 则尝试在该存储区中生成一个空文件块
-						file = createNewBlock(es.getIndex() + "_", es.getPath());
+//						file = createNewBlock(es.getIndex() + "_", es.getPath());
+						file = createNewFile(getPreName(f.getName()), getSuffixName(f.getName()), es.getPath());
 						if (file != null) {
 							// 生成成功，尝试存入数据
 							f.transferTo(file);
@@ -268,6 +271,43 @@ public class FileBlockUtil {
 			}
 		}
 		return newBlock;
+	}
+
+	private File createNewFile(String name, String suffix, File parent) throws IOException {
+		int appendIndex = 0;
+		int retryNum = 0;
+		File newFile = new File(parent, name + suffix);
+		while (!newFile.createNewFile()) {
+			if (appendIndex >= 0 && appendIndex < 5) {
+				newFile = new File(parent, name + "_" + appendIndex + suffix);
+				appendIndex++;
+			} else {
+				if (retryNum >= 5) {
+					log.error("文件创建失败! 路径:{}, 文件名:{}", parent.getPath(), name + suffix);
+					return null;
+				} else {
+					newFile = new File(parent, name);
+					retryNum++;
+				}
+			}
+		}
+		return newFile;
+	}
+
+	private String getPreName(String name) {
+		int n;
+		if ( (n = name.indexOf('.')) > 0) {
+			return name.substring(0, n);
+		}
+		return name;
+	}
+
+	private String getSuffixName(String name) {
+		int n;
+		if ( (n = name.indexOf('.')) > 0) {
+			return name.substring(n);
+		}
+		return "";
 	}
 
 	/**
